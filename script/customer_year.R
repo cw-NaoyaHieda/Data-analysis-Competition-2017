@@ -1,7 +1,12 @@
+#パッケージのインストールと読み込み
+#持ってないパッケージはインストールする
+targetPackages <- c('tidyverse', 'dplyr') 
+newPackages <- targetPackages[!(targetPackages %in% installed.packages()[,"Package"])]
+if(length(newPackages)) install.packages(newPackages, repos = "http://cran.us.r-project.org")
+for(package in targetPackages) library(package, character.only = T)
+
 # 顧客マスタ
 # 誕生年代との初回来店年の異常について
-
-library(tidyverse)
 
 customer <- read.csv("data/顧客マスタ.csv")
 history <- read.csv("data/会計履歴.csv")
@@ -59,3 +64,11 @@ customer %>%
 # 提案
 # 日本進出がいつからなのか分からないけれども上記の
 # 不自然な奴はNULLにしちゃえばいいと思います。
+
+
+
+# 20170924/稗田
+# 誕生年代についての二件---- 年代をNULLでよし
+# 初回来店について
+# 日本進出は1978年 http://modshair.co.jp/bland/
+# 初回来店年について----　こちらもNULLで
