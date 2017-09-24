@@ -1,7 +1,10 @@
 # 顧客マスタの備考について
 # フリー女性、フリー男性、会員情報無し
 
-library(tidyverse)
+targetPackages <- c('tidyverse') 
+newPackages <- targetPackages[!(targetPackages %in% installed.packages()[,"Package"])]
+if(length(newPackages)) install.packages(newPackages, repos = "http://cran.us.r-project.org")
+for(package in targetPackages) library(package, character.only = T)
 
 customer <- read.csv("data/顧客マスタ.csv")
 history <- read.csv("data/会計履歴.csv")
