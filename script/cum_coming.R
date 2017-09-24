@@ -1,6 +1,12 @@
+#パッケージのインストールと読み込み
+#持ってないパッケージはインストールする
+targetPackages <- c('tidyverse') 
+newPackages <- targetPackages[!(targetPackages %in% installed.packages()[,"Package"])]
+if(length(newPackages)) install.packages(newPackages, repos = "http://cran.us.r-project.org")
+for(package in targetPackages) library(package, character.only = T)
+
 # 会計履歴の累積来店回数が負のものの確認
 
-library(tidyverse)
 history <- read.csv("data/会計履歴.csv")
 
 summary(history)
@@ -43,3 +49,6 @@ history %>%
 # 提案----
 # 返品処理を正しく行ってから考える必要がある。
 # 原因もわかり、そこまで深刻な問題ではない。
+
+# Excellent! 
+# じゃあ、保留にしとくね 20170924
