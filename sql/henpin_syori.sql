@@ -66,6 +66,8 @@ FROM
 		ON A.receipt_id = B.receipt_id
 	WHERE
 		trans_category = '販売'	) AS D
-		ON	C.store_id = D.store_id AND C.customer_id = D.customer_id AND C.product_id = D.product_id AND C.dt >= D.dt AND C.t >= D.t 
+		ON	C.store_id = D.store_id AND C.customer_id = D.customer_id
+			AND C.product_id = D.product_id AND (C.dt > D.dt OR (C.dt = D.dt AND C.t > D.t))
 	) AS E
-WHERE rk = 1
+WHERE rk = 1 AND hanbai_receipt IS NULL
+
