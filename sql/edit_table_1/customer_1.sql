@@ -1,7 +1,6 @@
-﻿DROP TABLE IF EXISTS  public.customer_1;
+DROP TABLE IF EXISTS  public.customer_1;
 
 CREATE TABLE customer_1 AS
-
 SELECT
 	CAST(customer_id AS integer) AS customer_id,
 	first_year,
@@ -19,5 +18,7 @@ FROM
 			*
 		FROM
 			store
+		UNION ALL
+			VALUES (0,'他店舗','その他',0,0,NULL)
 	) AS A
 	ON customer.first_store = A.store_id
