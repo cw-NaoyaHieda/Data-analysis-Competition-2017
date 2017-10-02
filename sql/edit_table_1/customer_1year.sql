@@ -1,7 +1,7 @@
 ﻿--customer_1の後に実行
-UPDATE 
-	customer_1 
-SET 
+UPDATE
+	customer_1
+SET
 	birth_age = NULL
 WHERE
 	birth_age > 2020; --未来で生まれてる顧客の誕生年代をNULLに
@@ -23,3 +23,5 @@ SET
 	birth_age = NULL
 WHERE
 	birth_age > first_year; --誕生年代が2010年で初回来店年が1999年の人、どちらの年もNULLに
+
+ALTER TABLE customer_1 RENAME TO customer_2;
