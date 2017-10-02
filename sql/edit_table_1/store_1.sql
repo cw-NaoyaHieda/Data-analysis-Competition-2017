@@ -4,8 +4,8 @@ CREATE TABLE store_1 AS
 SELECT
 	CAST(ROW_NUMBER() OVER (ORDER BY store_id) AS integer) AS store_id,
 	store_name,
- 	CAST(latitude AS integer) AS lat,
- 	CAST(longitude AS integer) AS long,
+ 	CAST(latitude AS numeric) AS lat,
+ 	CAST(longitude AS numeric) AS long,
     floor AS f
 FROM
 	store;
