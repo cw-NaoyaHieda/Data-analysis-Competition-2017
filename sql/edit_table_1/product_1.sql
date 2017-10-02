@@ -12,7 +12,7 @@ SELECT
 	CASE WHEN category_1 = '廃棄' THEN '廃棄'
 	     WHEN account_spec_product_id = '9000000002' THEN '特別セット'
 	     ELSE category_2 END AS category_2,
-	CASE WHEN account_spec_product_id = '9000000002' THEN 'ﾌｪｲｼｬﾙ+ﾍｯﾄﾞﾏｯｻｰｼﾞ+ﾏｯｻｰｼﾞｼｬﾝﾌﾟｰ+眉ｶｯﾄ+ｶｯﾄ' END AS product_name,
+	CASE WHEN account_spec_product_id = '9000000002' THEN 'ﾌｪｲｼｬﾙ+ﾍｯﾄﾞﾏｯｻｰｼﾞ+ﾏｯｻｰｼﾞｼｬﾝﾌﾟｰ+眉ｶｯﾄ+ｶｯﾄ' ELSE product_name END AS product_name,
 	non_tax,
 	tax AS in_tax,
 	minute AS treat_time,
