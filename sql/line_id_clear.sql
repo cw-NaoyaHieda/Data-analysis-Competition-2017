@@ -13,7 +13,12 @@ AS SELECT
 	tax,
 	product_id,
 	staff_id,
-	simei
+	simei,
+	-- 入力ミスと販売を記録する列を追加,入力ミスが52個で一致することは調査済み
+	CASE 
+	   WHEN in_tax < 0 THEN '入力ミス'
+	   WHEN in_tax >= 0 THEN '販売'
+	   END AS trans_category
 FROM
 	line_1
 	left outer join
