@@ -1,10 +1,10 @@
-﻿CREATE TABLE gaiku_infos (
-id integer NOT NULL PRIMARY KEY,
+﻿DROP TABLE gaiku_infos;
+CREATE TABLE gaiku_infos (
 pref_kanji varchar(36),
 city_kanji varchar(128),
 town_kanji varchar(128),
 number varchar(128),
-coordinate_no char(2),
+coordinate_no char(4),
 coordinate_x numeric,
 coordinate_y numeric,
 longitude numeric,
