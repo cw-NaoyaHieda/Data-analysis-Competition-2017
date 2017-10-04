@@ -14,6 +14,8 @@ FROM
 			*
 		FROM
 			store
+		UNION ALL
+			VALUES (0,'他店舗','その他',0,0,NULL)
 	) AS store_tmp
 	ON staff.store_id = store_tmp.store_id
 ORDER BY

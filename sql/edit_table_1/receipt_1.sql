@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS  public.receipt_1;
+﻿DROP TABLE IF EXISTS  public.receipt_1 CASCADE;
 
 CREATE TABLE receipt_1 AS
 
@@ -34,10 +34,12 @@ FROM
 	rireki
 	LEFT JOIN(
 		SELECT
-			*
-			,CAST(ROW_NUMBER() OVER (ORDER BY store_id) AS integer) AS store_id_num
+			CAST(ROW_NUMBER() OVER (ORDER BY store_id) AS integer) AS store_id_num
+			,*
 		FROM
 			store
+		UNION ALL
+			VALUES (0,'他店舗','その他',0,0,NULL)
 	) AS A
 	ON  rireki.store_id = A.store_id
 	LEFT JOIN(
