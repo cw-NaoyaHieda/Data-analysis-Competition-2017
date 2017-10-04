@@ -12,7 +12,7 @@ AS SELECT
 	customer_id,
 	in_tax,
 	tax,
-	CASE trans_category WHEN '返品' THEN '入力ミス' END AS trans_category ,
+	CASE trans_category WHEN '返品' THEN '入力ミス' END AS trans_category,
 	pos_staff,
 	regi_staff,
 	simei,
@@ -30,15 +30,17 @@ AS SELECT
 	use_point_class,
 	point_grant,
 	point_balance,
-	cs_point	,
+	cs_point,
 	item_num
 FROM
-	receipt_1
-	left outer join
-	id_list
-		on receipt_1.receipt_id = id_list.henpin_receipt
-		or receipt_1.receipt_id = id_list.hanbai_receipt
+	receipt_1 AS A
+	LEFT JOIN(
+		SELECT 	
+			*
+		FROM	
+			id_list
+		) AS B
+		ON A.receipt_id = B.henpin_receipt
+		OR A.receipt_id = B.hanbai_receipt
 	where
-		id_list.henpin_receipt is NULL
-
-		
+		B.henpin_receipt is NULL

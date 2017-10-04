@@ -14,7 +14,7 @@ AS SELECT
 	product_id,
 	staff_id,
 	simei,
-	-- 入力ミスと販売を記録する列を追加,入力ミスが52個で一致することは調査済み
+	-- 入力ミスと販売を記録する列を追加,入力ミスが72個で一致することは調査済み
 	CASE 
 	   WHEN in_tax < 0 THEN '入力ミス'
 	   WHEN in_tax >= 0 THEN '販売'
