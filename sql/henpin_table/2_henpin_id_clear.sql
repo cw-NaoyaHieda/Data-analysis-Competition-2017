@@ -1,10 +1,9 @@
-﻿-- DROP TABLE public.customer;
-DROP TABLE IF EXISTS  receipt_henpin_syori;
+﻿DROP TABLE IF EXISTS receipt_henpin_syori;
 
-CREATE TABLE
-	receipt_henpin_syori
--- 返品で抜き出したIDを消去する
-AS SELECT
+CREATE TABLE receipt_henpin_syori
+-- 返品で抜き出したIDを消去する phase1
+AS 
+SELECT
  	receipt_id,
 	store_id,
 	dt,
@@ -12,7 +11,7 @@ AS SELECT
 	customer_id,
 	in_tax,
 	tax,
-	CASE trans_category WHEN '返品' THEN '入力ミス' END AS trans_category,
+	trans_category,
 	pos_staff,
 	regi_staff,
 	simei,
@@ -38,7 +37,7 @@ FROM
 		SELECT 	
 			*
 		FROM	
-			id_list
+			id_list_all
 		) AS B
 		ON A.receipt_id = B.henpin_receipt
 		OR A.receipt_id = B.hanbai_receipt

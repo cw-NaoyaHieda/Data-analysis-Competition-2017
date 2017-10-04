@@ -1,20 +1,14 @@
-﻿-- 会計履歴用
---DROP VIEW IF EXISTS  ID_LIST_1;
+﻿--会計明細から個別のアイテムが一致しているIDを抜き出す
+DROP VIEW IF EXISTS  ID_LIST_item;
 
---CREATE VIEW ID_LIST_1 
---AS
+CREATE VIEW ID_LIST_item
+AS
 SELECT
-	henpin_receipt,
-	SUM(henpin_in_tax)-SUM(henpin_discount) AS henpin_in_tax,
-	--hanbai_receipt,
-	SUM(hanbai_in_tax)-SUM(hanbai_discount) AS hanbai_in_tax
+	henpin_line_id,
+	hanbai_line_id
 FROM
 	(SELECT
 		*,
-		C.in_tax_oneitem AS henpin_in_tax,
-		D.in_tax_oneitem AS hanbai_in_tax,
-		C.discount AS henpin_discount,
-		D.discount AS hanbai_discount,
 		ROW_NUMBER() OVER(PARTITION BY henpin_line_id ORDER BY D.dt DESC) AS rk
 		-- ROW_NUMBER() 連番を割り振る
 		-- PARTATION BY 会計明細ID内で
@@ -41,12 +35,12 @@ FROM
 			B.discount,
 			B.product_id
 		FROM
-		receipt_1 AS A
+		receipt_henpin_syori AS A
 		LEFT JOIN(
 			SELECT
 				* 
 			FROM
-				line_1
+				line_henpin_syori
 			) AS B
 			ON A.receipt_id = B.receipt_id
 		WHERE
@@ -70,12 +64,12 @@ FROM
 				B.discount,
 				B.product_id
 			FROM
-				receipt_1 AS A
+				receipt_henpin_syori AS A
 				LEFT JOIN(
 					SELECT
 						*
 					FROM
-						line_1
+						line_henpin_syori
 				) AS B
 				ON A.receipt_id = B.receipt_id
 			WHERE
@@ -88,10 +82,7 @@ FROM
 WHERE rk = 1 AND hanbai_receipt IS NOT NULL
 -- 一致するもので create view
 
--- WHERE rk = 1 AND hanbai_receipt IS NULL
--- 一致しないものは72件
-	
-GROUP BY 
-	henpin_receipt;
-	--,hanbai_receipt;
+-- WHERE rk = 1 AND hanbai_receipt IS NULL;
+--
+
 	

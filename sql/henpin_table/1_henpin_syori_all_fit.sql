@@ -1,7 +1,10 @@
-﻿DROP VIEW IF EXISTS  ID_LIST;
+﻿-- 会計履歴から会計IDごとに合計金額が一致しているIDを抜き出す
 
-CREATE VIEW ID_LIST 
+DROP VIEW IF EXISTS  ID_LIST_all;
+
+CREATE VIEW ID_LIST_all
 AS 
+
 SELECT
 	henpin_receipt,
 	henpin_line_id,
@@ -22,7 +25,7 @@ FROM
 			A.dt,
 			A.t,
 			A.customer_id,
-			A.in_tax,
+			A.in_tax AS in_tax_all,
 			A.trans_category,
 			A.pos_staff,
 			A.regi_staff,
@@ -32,7 +35,7 @@ FROM
 			A.item_num,
 			B.line_id AS henpin_line_id, -- 会計明細iD
 			B.item_treat,
-			B.in_tax AS in_tax_oneitem,
+			B.in_tax,
 			B.discount,
 			B.product_id
 		FROM
@@ -54,14 +57,14 @@ FROM
 			A.dt,
 			A.t,
 			A.customer_id,
-			A.in_tax,
+			A.in_tax AS in_tax_all,
 			A.cash,
 			A.credit,
 			A.ec_money,
 			A.item_num,
 			B.line_id AS hanbai_line_id,
 			B.item_treat,
-			B.in_tax AS in_tax_oneitem,
+			B.in_tax,
 			B.discount,
 			B.product_id
 		FROM
@@ -76,11 +79,11 @@ FROM
 		WHERE
 			trans_category = '販売'	) AS D
 			ON C.store_id = D.store_id AND C.customer_id = D.customer_id
-			AND C.product_id = D.product_id AND ABS(C.in_tax_oneitem) = D.in_tax_oneitem
-			AND ABS(C.discount) = D.discount AND (C.dt > D.dt OR (C.dt = D.dt AND C.t > D.t))
+			AND ABS(C.in_tax_all) = D.in_tax_all
+			AND (C.dt > D.dt OR (C.dt = D.dt AND C.t > D.t))
 		) AS E
 	WHERE rk = 1 AND hanbai_receipt IS NOT NULL;
 	-- 一致するもので create view
 
-	-- WHERE rk = 1 AND hanbai_receipt IS NULL
-	-- 一致しないものは52 -> 72件
+	--WHERE rk = 1 AND hanbai_receipt IS NULL
+	-- 一致しないものは111件
