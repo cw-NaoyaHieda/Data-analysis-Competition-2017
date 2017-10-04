@@ -1,4 +1,6 @@
 ﻿DROP TABLE IF EXISTS  line_henpin_syori_fin;
+-- 一時保存用だから消してもいい
+-- DROP TABLE IF EXISTS  line_henpin_syori;
 
 CREATE TABLE line_henpin_syori_fin
 -- アイテムごとの返品で抜き出したIDを消去する phase2
