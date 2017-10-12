@@ -1,4 +1,4 @@
-﻿DROP TABLE IF EXISTS  line_henpin_syori;
+﻿DROP TABLE IF EXISTS  line_henpin_syori CASCADE;
 
 CREATE TABLE line_henpin_syori
 -- 返品で抜き出したIDを消去する phase1
