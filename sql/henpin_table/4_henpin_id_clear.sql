@@ -64,4 +64,5 @@ FROM
 		ON A.receipt_id = B.hanbai_receipt
 -- 返品は消去
 WHERE
-	trans_category = '販売'
+	trans_category = '販売';
+	
