@@ -1,10 +1,17 @@
 ﻿SELECT
 	*
 FROM 
-	receipt_1 AS A
-	LEFT JOIN
-		line_1 AS B
+	receipt_henpin_syori AS A
+	INNER JOIN line_henpin_syori AS B
 	ON A.receipt_id = B.receipt_id
-	-- line_henpin_syori
+	-- receipt_henpin_syori AS A
 WHERE
-	A.receipt_id = 1580598 OR A.receipt_id = 1580595 OR A.receipt_id = 1580596
+	--B.line_id = 3220403
+	--OR B.line_id = 3217598
+	-- A.customer_id = 6137
+	-- A.customer_id = 8318
+	A.receipt_id = 1600950
+	-- OR A.receipt_id = 1602181
+	-- OR A.receipt_id = 1600950
+	 --A.trans_category = '返品'
+	-- A.dt = '2015-11-30'

@@ -1,4 +1,4 @@
-﻿DROP TABLE IF EXISTS receipt_henpin_syori;
+﻿DROP TABLE IF EXISTS receipt_henpin_syori CASCADE;
 
 CREATE TABLE receipt_henpin_syori
 -- 返品で抜き出したIDを消去する phase1
