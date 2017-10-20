@@ -1,6 +1,6 @@
 ﻿-- テーブルの複製
-DROP TABLE IF EXISTS receipt_henpin_syori CASCADE;
-CREATE TABLE receipt_henpin_syori AS SELECT * FROM receipt_1;
+--DROP TABLE IF EXISTS receipt_henpin_syori CASCADE;
+-- CREATE TABLE receipt_henpin_syori AS SELECT * FROM receipt_1;
 
 -- 手動 while loop 笑
 -- 第一工程
@@ -39,17 +39,10 @@ HAVING hanbai IS NOT NULL;
 DELETE FROM receipt_henpin_syori AS A
 USING id_all_fit AS B
 WHERE A.receipt_id = B.henpin_receipt
-      OR A.receipt_id = B.hanbai_receipt
+      OR A.receipt_id = B.hanbai_receipt;
 
-CREATE TEMPORARY TABLE id_list_1 AS SELECT * FROM id_all_fit;
-CREATE TEMPORARY TABLE id_list_2 AS SELECT * FROM id_all_fit;
-CREATE TEMPORARY TABLE id_list_3 AS SELECT * FROM id_all_fit;
+--CREATE TEMPORARY TABLE id_list_1 AS SELECT * FROM id_all_fit;
+--CREATE TEMPORARY TABLE id_list_2 AS SELECT * FROM id_all_fit;
+--CREATE TEMPORARY TABLE id_list_3 AS SELECT * FROM id_all_fit;
 
-
-DROP TABLE IF EXISTS id_list_all CASCADE;
-CREATE TABLE id_list_all 
-AS 
- SELECT * FROM id_list_1 UNION
- SELECT * FROM id_list_2 UNION
- SELECT * FROM id_list_3
-
+SELECT * FROM id_all_fit;
