@@ -29,8 +29,7 @@ FROM(
 				TRIM(trans_category) = '販売') AS B
 		ON A.store_id = B.store_id AND A.customer_id = B.customer_id
 		AND ABS(A.in_tax) = B.in_tax
-		AND (A.dt > B.dt OR A.dt = B.dt)
-
+		AND A.dt >= B.dt
 	GROUP BY A.receipt_id) AS C 
 GROUP BY hanbai
 HAVING hanbai IS NOT NULL;
