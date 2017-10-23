@@ -14,3 +14,6 @@ ALTER TABLE customer_2 ADD COLUMN remake_count INT;
 
 -- 顧客別商品購入金額
 ALTER TABLE customer_2 ADD COLUMN total_item_money INT;
+
+-- 顧客の来店間隔
+ALTER TABLE customer_2 ADD COLUMN visit_interval INT;

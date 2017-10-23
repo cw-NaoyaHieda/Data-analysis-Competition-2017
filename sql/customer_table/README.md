@@ -1,14 +1,17 @@
-0_工程は調査用なので不要
+0_�H���͒����p�Ȃ̂ŕs�v
 
-1_工程は必要項目のcolumnを追加、会計履歴に曜日を追加
+1_�H���͕K�v���ڂ�column��ǉ��A��v�����ɗj����ǉ�
 
-2_customer_工程は平日or土日、朝、昼、晩の六項目に分割して、その該当時間での施術回数を記録
+2_customer_count_�H���͕���or�y���A���A���A�ӂ̘Z���ڂɕ������āA���̊Y�����Ԃł̎{�p�񐔂��L�^
 
-* 商品購入のみの場合は含めていません。またお直しは除外しています。前髪カットは0円と1000円のものがあり
-0円のものはお直しと同等だと判断してお直しに含めています。
+���i�w���݂̂̏ꍇ�͊܂߂Ă��܂���B�܂��������͏��O���Ă��܂��B�O���J�b�g��0�~��1000�~�̂��̂����� 0�~�̂��̂͂������Ɠ������Ɣ��f���Ă������Ɋ܂߂Ă��܂��B
 
-2_total_工程は商品購入の合計金額を記録しています。
+2_customer_visit_�H���͌ڋq�̗��X�Ԋu���L�^���Ă��܂��B�Ō�̗��X���ƍŏ��̗��X���𗈓X��-1�Ŋ���܂��B���X�񐔂��P�̏ꍇ��NULL�ɂȂ��Ă��܂��B
 
-2_onaosi_工程はお直しの合計回数を記録してます。上述したように、前髪カット(0円)も含めています
+2_total_�H���͏��i�w���̍��v���z���L�^���Ă��܂��B
 
-3_customer_工程はcustomer_idで降順にsortします
+2_onaosi_�H���͂������̍��v�񐔂��L�^���Ă܂��B��q�����悤�ɁA�O���J�b�g(0�~)���܂߂Ă��܂�
+
+
+3_customer_�H����customer_id�ō~����sort���܂�
+
