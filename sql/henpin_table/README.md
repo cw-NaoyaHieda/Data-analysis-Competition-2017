@@ -1,6 +1,9 @@
-1-5�H���͌��ׂ�����s�v�A����܂��g���\��������̂ŕێ�
+1-5工程は欠陥があり不要、今後また使う可能性があるので保持
 
-henpin_syori_0 : customer_id��NULL�̏ꍇ-1��^���鏈��(����͌���ɂ��c���Ă��܂�)
-henpin_syori_1 : ��v��������̔��̕ԕi�̃y�A(�X��id,�ڋqid,���z,�l����v���āA���t�����̓����܂ޓ����ȑO�̂���)���d�����Ȃ��悤�ɍ폜
-henpin_syori_2 : �쐬������v������p����INNER JOIN�ň�v������̂��c��
-henpin_syori_3 : ��v��������J�e�S���[���ԕi�̂��̂��폜�AINNER JOIN�͓������̕��@�ŏ����������̂́A��v��������29��,��v���ׂ���60���ł�
+henpin_syori_0 : customer_idがNULLの場合-1を与える処理(これは現状にも残っています)
+
+henpin_syori_1 : 会計履歴から販売の返品のペア(店舗id,顧客id,金額,値が一致して、日付がその日を含む同日以前のもの)を重複しないように削除
+
+henpin_syori_2 : 作成した会計履歴を用いてINNER JOINで一致するものを残す
+
+henpin_syori_3 : 会計履歴からカテゴリーが返品のものを削除、INNER JOINは同じこの方法で消去したものは、会計履歴から29件,会計明細から60件です

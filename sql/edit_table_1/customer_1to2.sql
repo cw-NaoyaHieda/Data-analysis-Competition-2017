@@ -4,7 +4,9 @@ UPDATE
 SET
 	birth_age = NULL
 WHERE
-	birth_age > 2020; --未来で生まれてる顧客の誕生年代をNULLに
+	birth_age > 2020
+OR
+	birth_age < 1900; --未来で生まれてる顧客の誕生年代をNULLに
 
 
 UPDATE
