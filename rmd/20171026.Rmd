@@ -4,22 +4,26 @@ date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:
     highlight: kate
+    code_folding: hide
+    css: toc.css
+    pandoc_args: [
+        "--from", "markdown+autolink_bare_uris+tex_math_single_backslash-implicit_figures"
+        ]
 ---
+      
 
 
 ```{r knitr_init, echo=FALSE, cache=FALSE}
-library(knitr)
-library(rmdformats)
 
 ## Global options
 options(max.print="75")
-opts_chunk$set(echo=FALSE,
+knitr::opts_chunk$set(echo=TRUE,
 	             prompt=FALSE,
                tidy=TRUE,
                comment=NA,
                message=FALSE,
                warning=FALSE)
-opts_knit$set(width=75)
+knitr::opts_knit$set(width=75)
 ```
 
 
@@ -30,12 +34,14 @@ library(RPostgreSQL)
 library(magrittr)
 library(dplyr)
 library(reshape2)
+library(GGally)
+
 con <- dbConnect(PostgreSQL(), host="192.168.11.16", 
                  port=5432, 
                  dbname="datacom2017", 
                  user="postgres", 
                  password="postgres")
-
+dbGetQuery(con,"SET CLIENT_ENCODING TO 'shift-jis';")
 scan_query <- function(query_path) {
   return (
     scan(query_path, what='', quote='', sep='\n', comment.char = '', encoding='UTF-8') %>% 
@@ -45,7 +51,7 @@ scan_query <- function(query_path) {
 }
 ```
 
-#　顧客のロジスティック回帰
+# 初回来店データでrepeaterになるかのロジスティック回帰
 
 ```{r}
 dataset <- dbGetQuery(con,"
@@ -60,21 +66,23 @@ str(dataset)
 2016~2017年に初回来店しているお客様のみに対して
 
 ```{r}
-new_customer　<- dataset %>%
-  filter(first_year == 2016 | first_year == 2017 )
+new_customer <- dataset[dataset$first_year == 2016 | dataset$first_year == 2017,]
 nrow(new_customer)
 ```
 
+## 来店回数(repeterかどうか)の確認
+
 ```{r}
 new_customer <- cbind(new_customer,
-          total_count = new_customer[,c(9:14)] %>% rowSums())
+                      total_count = new_customer[,c(9:14)] %>% rowSums())
 table(new_customer$total_count)
 ```
 16年前半に来て、それ以降きてない人が0になるので、削除・・・あれ？一回も来てない人はデータないんじゃないっけ？？
 
 ついでに，ロジスティックの目的関数作成
 ```{r}
-new_customer <- new_customer %>% filter(total_count != 0) %>%
+#new_customer <- new_customer %>% filter(total_count != 0) %>%
+new_customer <- new_customer[new_customer$total_count != 0,] %>%
   mutate(repeater = as.numeric(total_count != 1))
 table(new_customer$repeater)
 ```
@@ -83,19 +91,18 @@ table(new_customer$repeater)
 初回来店のデータが欲しい
 ```{r}
 dataset2 <- dbGetQuery(con,"
-SELECT
-  *
-FROM(
-  SELECT
-    *,
-    ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY dt) AS row_num
-  FROM
-    receipt_henpin_syori
-) AS A
-WHERE
-  row_num = 1
-")
-str(dataset2)
+                       SELECT
+                       *
+                       FROM(
+                       SELECT
+                       *,
+                       ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY dt) AS row_num
+                       FROM
+                       receipt_henpin_syori_fin
+                       ) AS A
+                       WHERE
+                       row_num = 1
+                       ")
 ```
 
 ```{r}
@@ -104,16 +111,66 @@ new_customer_firstdata <- new_customer %>%
   left_join(dataset2,by="customer_id") 
 ```
 
+
+## 初回データ確認
+使うデータだけにしつつ相関関係の確認
+
+こういう時は男女とかのデータが数字じゃないと困るね
+めんどいからとりあえず抜くだけ
 ```{r}
-str(new_customer_firstdata)
-table(new_customer_firstdata$trans_category)
+new_customer_firstdata_naout <- na.omit(new_customer_firstdata %>% select(repeater,t,day,dm,sex,store_id,in_tax,regi_staff,simei,item_num))
+str(new_customer_firstdata_naout)
+cor(new_customer_firstdata_naout[,c(-2,-4,-5,-8,-9)])
+ggpairs(new_customer_firstdata_naout[,c(-2,-8)])
+```
+
+・・・あれっレジスタッフの種類めっちゃ多いけど，これこのまま回帰していいのかな
+
+## ロジスティック回帰
+
+
+```{r}
+output.glm <- glm(repeater~ day + dm + sex + store_id + in_tax + regi_staff %>% as.character() +
+                    simei + item_num + substr(new_customer_firstdata_naout$t,1,2) ,
+                  family=binomial,data= new_customer_firstdata_naout)
+summary(output.glm)
+exp(output.glm$coefficients)
 ```
 
 
 
 
+```{r}
+# 予測子を取り出してx軸のデータにする
+xaxis1 <- output.glm$linear.predictor 
+# 曲線描画用のx軸データを生成する。
+xaxis2 <- seq(from=min(xaxis1), to=max(xaxis1), length=200)
+
+# 曲線用の予測値データを生成する
+yaxis2 <- exp(xaxis2)/(1+exp(xaxis2))#生成データから予測値を出す。分子に注意
+
+#　プロット
+plot(xaxis1,new_customer_firstdata_naout$repeater) #元の予測子と実測データをプロット
+lines(xaxis2, yaxis2) #生成データで曲線を描画する
 
 
+#new_customer_firstdata[is.na(new_customer_firstdata)]$repeater
+```
 
 
+```{r}
+model.best <- step(output.glm)
+```
 
+## 誤差識別率
+
+```{r}
+fit<- fitted(model.best)
+new_customer_firstdata_naout<- cbind(new_customer_firstdata_naout,fit)
+predict <- ifelse(new_customer_firstdata_naout$fit>0.5,1,0)
+new_customer_firstdata_naout<-cbind(new_customer_firstdata_naout, predict)
+table(new_customer_firstdata_naout$repeater, new_customer_firstdata_naout$predict)
+```
+
+
+うん，数が違うこと考慮してやらなきゃダメだね
