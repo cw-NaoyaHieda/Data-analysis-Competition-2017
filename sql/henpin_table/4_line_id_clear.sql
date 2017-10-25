@@ -28,4 +28,12 @@ FROM
 	where
 	id_list_item.henpin_line_id is NULL
 
-		
+
+UPDATE
+	line_henpin_syori_fin 
+SET
+	staff_id = NULL
+WHERE
+	staff_id = '#N/A'; --担当者idが#N/AだったところをNULLに
+
+

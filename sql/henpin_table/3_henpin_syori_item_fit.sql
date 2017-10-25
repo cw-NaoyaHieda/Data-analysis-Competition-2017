@@ -3,9 +3,13 @@ DROP VIEW IF EXISTS  ID_LIST_item;
 
 CREATE VIEW ID_LIST_item
 AS
-SELECT
+SELECT  
 	henpin_line_id,
-	hanbai_line_id
+	hanbai_receipt,
+	hanbai_line_id,
+	hanbai_in_tax_oneitem AS in_tax_oneitem,
+	tax_oneitem,
+	1 AS item_num
 FROM
 	(SELECT
 		*,
@@ -31,7 +35,7 @@ FROM
 			A.item_num,
 			B.line_id AS henpin_line_id, -- 会計明細iD
 			B.item_treat,
-			B.in_tax AS in_tax_oneitem,
+			B.in_tax AS henpin_in_tax_oneitem,
 			B.discount,
 			B.product_id
 		FROM
@@ -60,7 +64,8 @@ FROM
 				A.item_num,
 				B.line_id AS hanbai_line_id,
 				B.item_treat,
-				B.in_tax AS in_tax_oneitem,
+				B.in_tax AS hanbai_in_tax_oneitem,
+				B.tax AS tax_oneitem,
 				B.discount,
 				B.product_id
 			FROM
@@ -75,7 +80,7 @@ FROM
 			WHERE
 				trans_category = '販売'	) AS D
 				ON C.store_id = D.store_id AND C.customer_id = D.customer_id
-				AND C.product_id = D.product_id AND ABS(C.in_tax_oneitem) = D.in_tax_oneitem
+				AND C.product_id = D.product_id AND ABS(henpin_in_tax_oneitem) = hanbai_in_tax_oneitem
 				AND ABS(C.discount) = D.discount AND (C.dt > D.dt OR (C.dt = D.dt AND C.t > D.t))
 			) AS E
 			
