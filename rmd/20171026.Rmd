@@ -1,0 +1,119 @@
+---
+title: "20171026"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+
+```{r set}
+library(ggplot2)
+library(DBI)  # 必須ではないらしい
+library(RPostgreSQL)
+library(magrittr)
+library(dplyr)
+library(reshape2)
+con <- dbConnect(PostgreSQL(), host="192.168.11.16", 
+                 port=5432, 
+                 dbname="datacom2017", 
+                 user="postgres", 
+                 password="postgres")
+
+scan_query <- function(query_path) {
+  return (
+    scan(query_path, what='', quote='', sep='\n', comment.char = '', encoding='UTF-8') %>% 
+      gsub(pattern='--.*$', replacement='') %>% # 正規表現でコメントアウトを消す
+      paste0(collapse=' ')
+  )
+}
+```
+
+#　顧客のロジスティック回帰
+
+```{r}
+dataset <- dbGetQuery(con,"
+SELECT
+  *
+FROM
+  customer_2")
+
+str(dataset)
+```
+
+2016~2017年に初回来店しているお客様のみに対して
+
+```{r}
+new_customer　<- dataset %>%
+  filter(first_year == 2016 | first_year == 2017 )
+nrow(new_customer)
+```
+
+```{r}
+new_customer <- cbind(new_customer,
+          total_count = new_customer[,c(9:14)] %>% rowSums())
+table(new_customer$total_count)
+```
+16年前半に来て、それ以降きてない人が0になるので、削除・・・あれ？一回も来てない人はデータないんじゃないっけ？？
+
+ついでに，ロジスティックの目的関数作成
+```{r}
+new_customer <- new_customer %>% filter(total_count != 0) %>%
+  mutate(repeater = as.numeric(total_count != 1))
+table(new_customer$repeater)
+```
+
+
+初回来店のデータが欲しい
+```{r}
+dataset2 <- dbGetQuery(con,"
+SELECT
+  *
+FROM(
+  SELECT
+    *,
+    ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY dt) AS row_num
+  FROM
+    receipt_henpin_syori
+) AS A
+WHERE
+  row_num = 1
+")
+str(dataset2)
+```
+
+```{r}
+new_customer_firstdata <- new_customer %>%
+  select(customer_id,zip_code,dm,sex,birth_age,repeater) %>%
+  left_join(dataset2,by="customer_id") 
+```
+
+```{r}
+str(new_customer_firstdata)
+table(new_customer_firstdata$trans_category)
+```
+
+
+
+
+
+
+
+
+
