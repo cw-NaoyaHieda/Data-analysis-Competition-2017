@@ -1,0 +1,289 @@
+---
+title: "進捗報告"
+author: 黒木 裕鷹
+date: "2017年10月17日"
+output:
+  revealjs::revealjs_presentation:
+    theme: sky
+    center: true
+    fig_height: 3.5
+    df_print: paged
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+
+```{r library, include = FALSE}
+library(tidyverse)
+library(lubridate)
+library(knitr)
+library(fastICA)
+```
+
+
+```{r data_lab, include=FALSE}
+receipt <- read_csv("E:/Git/DataAnalysis2017/data/receipt_henpin_syori_fin.csv")
+
+customer.tmp <- read_csv("E:/Git/DataAnalysis2017/data/customer_2.csv")
+
+customer <- receipt %>% 
+  select(customer_id,
+         cs_point) %>% 
+  group_by(customer_id) %>% 
+  summarise(count = n(),
+            cumComing=max(cs_point)) %>%  #cs_pointは累積来店回数
+  filter(count==1,
+         cumComing==1) %>%
+  mutate(repeater = FALSE) %>% 
+  select(customer_id,
+         repeater) %>% 
+  right_join(customer.tmp, by="customer_id") %>% 
+  mutate(repeater= ifelse(is.na(repeater)==TRUE,TRUE,FALSE))
+rm(customer.tmp)
+
+store <- read_csv("E:/Git/DataAnalysis2017/data/store_1.csv")
+
+staff <- read_csv("E:/Git/DataAnalysis2017/data/staff_1.csv") %>% 
+  rename(store_id = store_id_num)
+
+product <- read_csv("E:/Git/DataAnalysis2017/data/product_2.csv")
+
+line <- read_csv("E:/Git/DataAnalysis2017/data/line_henpin_syori_fin.csv") %>% 
+  mutate(product_id = as.character(product_id)) %>% 
+  left_join(receipt %>% select(dt,receipt_id, customer_id, regi_staff), 
+            by="receipt_id") %>% 
+  left_join(customer %>% select(customer_id, repeater, comment),
+            by="customer_id") %>% 
+  left_join(product %>% select(product_id, product_name),
+            by="product_id")
+```
+
+# はじめに
+
+
+## 目次
+
+- データ解析コンペ
+- Mazda
+- tidy な世界の調査1
+
+~~そろそろ風呂敷を畳んでいきます~~  
+~~Rmd でスライドを作って見たかった~~
+
+# データ解析コンペ
+
+## やったこと
+
+会計履歴（レシート単位）を中心に概観していました
+
+- 客単価の調査
+- 売上の推移
+
+
+## データ期間の確認
+
+```{r date, echo=FALSE}
+receipt %>% summarise(from = min(dt),
+                      to = max(dt)) %>% 
+  kable()
+```
+
+- 2015年7月1日 ~ 2017年6月30日
+- まるまる2年間のデータ
+
+
+# 12店舗全体での売上
+
+## 全期間
+```{r, echo=FALSE}
+receipt %>% 
+  summarise(in_tax = sum(in_tax),
+            count = n()) %>% 
+  mutate(unitPrice = round(in_tax/count)) %>% 
+  kable()
+```
+
+- 2年間で約18億円の売上
+- 約15万件の会計
+- 客単価は約1.1万円
+
+## 客単価ヒストグラム
+```{r, echo=FALSE}
+hist(receipt$in_tax, 60,
+     xlab="客単価（円）",
+     main = "")
+```
+
+## 年次（全体）
+
+```{r yearly, echo=FALSE}
+receipt %>% 
+  mutate(year = year(dt)) %>% 
+  group_by(year) %>% 
+  summarise(in_tax = sum(in_tax),
+            count = n()) %>% 
+  mutate(unitPrice = round(in_tax/count)) %>% 
+  kable()
+```
+
+- 2016年はフルでデータがあるので会計数は他の倍
+- 年ごとに単価の差は見られない。
+
+## 月次（全体）
+
+```{r monthly, echo=FALSE}
+monthly <- receipt %>% 
+  select(dt, in_tax) %>% 
+  mutate(dt = as.POSIXct(dt) ) %>% 
+  group_by(month = month(dt)) %>%
+  summarise(in_tax = sum(in_tax),
+            count = n()) %>% 
+  mutate(unitPrice = round(in_tax/count))
+kable(monthly)
+```
+
+
+## 月次売上
+```{r, echo=FALSE}
+ggplot(monthly,aes(x=month, y=in_tax)) + 
+  geom_line(size=1)+
+  theme_bw()+
+  ylim(0,max(monthly$in_tax))+
+  scale_x_continuous(breaks=1:12)
+```
+
+- 1月の売上が明らかに少ない
+- 12月が多そう
+- 秋に減少傾向がある？
+
+## 月次会計数
+
+```{r, echo=FALSE}
+ggplot(monthly,aes(x=month, y=count)) + 
+  geom_line(size=1)+
+  theme_bw()+
+  ylim(0,max(monthly$count))+
+  scale_x_continuous(breaks=1:12)
+```
+
+- 当然のようにほぼ同じ変化
+
+## 月次客単価
+```{r, echo=FALSE}
+ggplot(monthly,aes(x=month, y=unitPrice)) + 
+  geom_line(size=1)+
+  theme_bw()+
+  ylim(0,max(monthly$unitPrice))+
+  scale_x_continuous(breaks=1:12)
+```
+
+- ほぼ一定でした
+
+## 曜日ごと
+```{r weekly, echo=FALSE}
+w_day <- receipt %>% 
+  group_by(wday = wday(dt)) %>% 
+  summarise(in_tax = sum(in_tax),
+            count = n()) %>% 
+  mutate(unitPrice = in_tax/count)
+kable(w_day)
+```
+
+- 1~7 が日曜 ~ 土曜
+- 単価に差はなさそう
+- 美容室は火曜が定休日のところが多い
+- 土日の会計数はやはり多い
+- 会計数は火曜から土曜まで単調増加
+
+## 曜日別売上プロット
+
+```{r, echo=FALSE}
+w_day %>% 
+  ggplot(aes(x=wday, y=in_tax))+
+  geom_bar(stat="identity", width=0.7)+
+  theme_bw()
+```
+
+
+# 店舗ごと
+
+## 全期間（店舗ごと）
+
+
+```{r storely, echo=FALSE}
+storely <- receipt %>% 
+  select(store_id, dt, in_tax) %>% 
+  group_by(store_id) %>% 
+  summarise(in_tax = sum(in_tax),
+            count = n(),
+            unitPrice = in_tax/count) %>% 
+  arrange(desc(in_tax)) %>% 
+  left_join(store,by="store_id") %>% 
+  select(store_name, in_tax, count, unitPrice)
+kable(storely)
+```
+
+メン中野店。。。
+
+## 会計数 vs 客単価
+
+```{r, echo=FALSE}
+storely %>% 
+  ggplot()+ 
+  geom_point(aes(x=count, y=unitPrice))+
+  theme_bw()+
+  ylim(0, max(storely$unitPrice))+
+  xlim(0,max(storely$count))+
+  geom_text(aes(x = count,
+                y = unitPrice,
+                label=store_name), size=4, vjust=2)
+```
+
+- 男のコスパ悪い
+- 店舗の広さ、スタッフの数が分からないが
+- なんとなくの性質は見えてきそう？
+
+
+# 顧客について
+
+## 期間内来店者
+
+```{r, echo=TRUE}
+receipt %>% 
+  group_by(customer_id) %>% 
+  summarise(count = n()) %>% 
+  nrow()
+```
+
+- 31710 人が来店
+
+```{r, echo=TRUE}
+receipt %>% 
+  group_by(customer_id) %>% 
+  summarise(count=n(), cs_point=max(cs_point)) %>% 
+  filter(count==1, cs_point==1) %>% 
+  nrow()
+```
+
+- 10546 人が累計来店回数 1, 期間内に 1 回来店
+
+
+## 今後の展望
+
+最終的には  
+1. モデル構築（学術的に高度なものが望ましい） 
+2. 何らかの知見を得る
+3. 何かを提案する
+
+の流れが必要
+
+- リピーターになる人とそうでない人の違いは何か
+- スタイリストのレコメンドができる？

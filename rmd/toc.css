@@ -1,0 +1,22 @@
+
+#table-of-contents > h2 {
+    background-color: #1e90ff;
+
+}
+#table-of-contents > h2 > a{
+    font-size: large;
+    color: #ffffff;
+
+}
+
+h1,h2,h3,h4{
+    color:#000000;
+}
+
+
+
+pre, code { color: #1f1c1b; background-color: #f0f8ff; }
+pre.r, code { color: #1f1c1b; background-color: #e6e6fa; }
+#content {
+    max-width: 100%; 
+}

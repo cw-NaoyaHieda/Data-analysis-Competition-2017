@@ -1,0 +1,14 @@
+reset
+set size square
+set border lc rgb 'white'
+set cblabel 'Count' tc rgb 'white' font ', 30'
+set palette rgbformulae 22, 13, -31
+set obj rect behind from screen 0, screen 0 to screen 1, screen 1
+set object 1 rect fc rgb '#3366ff ' fillstyle solid 1.0
+set key textcolor rgb 'white'
+set size ratio 1/12
+set xrange [138.7:140.7]
+set yrange [35.19:36]
+plot "./world_10m.txt" with filledcurves ls 2,\
+'inp_pref.txt' using 1:2 with lines notitle linetype 1 lw 1 linecolor rgb '#ff0000 ',\
+'store_coount.rtf' using 5:4 with circles fc rgb using 2 size using 6 notitle fs transparent solid 0.65 lw 2.0 pal

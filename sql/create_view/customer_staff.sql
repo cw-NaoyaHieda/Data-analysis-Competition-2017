@@ -17,7 +17,7 @@ FROM(
 		count(*) AS pair_count,
 		RANK() OVER(PARTITION BY customer_id ORDER BY count(*) DESC) AS rank
 	FROM
-		receipt_henpin_syori
+		receipt_henpin_syori_fin
 	GROUP BY
 		customer_id,regi_staff
 	ORDER BY
