@@ -1,0 +1,675 @@
+---
+title: "Data Aalysis Competition"
+author: "Yutaka Kuroki"
+date: "2017年10月19日"
+output:
+  revealjs::revealjs_presentation:
+    theme: default
+    center: true
+    fig_height: 3.5
+    df_print: paged
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r library, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(fastICA)
+library(modeest)
+library(knitr)
+```
+
+# introduction
+
+## 目次
+
+今回はデータ解析コンペについてのみご報告させていただきます
+
+1. 先週作成した図の拡張
+2. 非リピーターについての調査
+3. エース級スタイリストについての調査
+
+
+
+
+~~懲りずにRmdでスライド・・・~~
+
+
+
+```{r data_lab, include=FALSE}
+receipt <- read_csv("E:/Git/DataAnalysis2017/data/receipt_henpin_syori_fin.csv")
+
+customer.tmp <- read_csv("E:/Git/DataAnalysis2017/data/customer_2.csv")
+
+customer <- receipt %>% 
+  select(customer_id,
+         cs_point) %>% 
+  group_by(customer_id) %>% 
+  summarise(count = n(),
+            cumComing=max(cs_point)) %>%  #cs_pointは累積来店回数
+  filter(count==1,
+         cumComing==1) %>%
+  mutate(repeater = FALSE) %>% 
+  select(customer_id,
+         repeater) %>% 
+  right_join(customer.tmp, by="customer_id") %>% 
+  mutate(repeater= ifelse(is.na(repeater)==TRUE,TRUE,FALSE))
+rm(customer.tmp)
+
+store <- read_csv("E:/Git/DataAnalysis2017/data/store_1.csv")
+
+staff <- read_csv("E:/Git/DataAnalysis2017/data/staff_1.csv") %>% 
+  rename(store_id = store_id_num)
+
+product <- read_csv("E:/Git/DataAnalysis2017/data/product_2.csv")
+
+line <- read_csv("E:/Git/DataAnalysis2017/data/line_henpin_syori_fin.csv") %>% 
+  mutate(product_id = as.character(product_id)) %>% 
+  left_join(receipt %>% select(dt,receipt_id, customer_id, regi_staff), 
+            by="receipt_id") %>% 
+  left_join(customer %>% select(customer_id, repeater, comment),
+            by="customer_id") %>% 
+  left_join(product %>% select(product_id, product_name),
+            by="product_id")
+```
+
+
+
+# 先週作成した図の拡張
+
+## 月次の客単価（全店舗）
+
+```{r monthly}
+monthly <- receipt %>% 
+  select(dt, in_tax) %>% 
+  mutate(dt = as.POSIXct(dt) ) %>% 
+  group_by(month = month(dt)) %>%
+  mutate(sd = sd(in_tax)) %>% 
+  summarise(in_tax = sum(in_tax),
+            count = n(),
+            sd = mean(sd)) %>% 
+  mutate(perCustomer = round(in_tax/count))
+```
+
+エラーバーを付けた
+
+```{r monthly_perCustomer}
+ggplot(monthly,aes(x=month, y=perCustomer)) + 
+  geom_line(size=1)+
+  theme_bw()+
+  ylim(0,max(monthly$perCustomer + monthly$sd))+
+  geom_errorbar(aes(ymin=perCustomer-sd,
+                    ymax=perCustomer+sd),
+                width=0.3)+
+  scale_x_continuous(breaks=1:12)
+```
+
+- sd 大きすぎます
+- 月ごとでほとんど変わらない
+- ~~つまらぬ図をプロットしてしまった~~
+
+## 
+
+ということで  
+バイオリンプロット　~ 箱ひげ図を添えて ~
+
+```{r monthly_violin}
+receipt %>% 
+  select(dt, in_tax) %>% 
+  ggplot(aes(x=factor(month(dt)), in_tax))+ 
+  geom_violin(adjust=.8,
+              colour="black",
+              fill="gray")+
+  geom_boxplot(width=.1,
+               fill="black",
+               outlier.colour=NA)+
+  stat_summary(fun.y=median, 
+               geom="point",
+               fill="white", 
+               shape=21, 
+               size=2)+
+  labs(x = "month",
+       y = "sales")+
+  theme_bw()
+```
+
+- 平滑パラメータに注意
+- 白点は中央値
+- ほとんど変化しない、裾の長い分布
+
+## 月別売上
+
+男女積み上げ棒グラフにした
+
+```{r monthly_sex}
+receipt %>% 
+  select(dt, customer_id, in_tax) %>% 
+  left_join(customer, by="customer_id") %>% 
+  select(dt, customer_id, in_tax, sex) %>% 
+  group_by(month = month(dt), sex) %>% 
+  summarise(sales = sum(in_tax)) %>%
+  filter(sex =="女性" | sex =="男性") %>% 
+  
+  ggplot(aes(x=month, y=sales, fill=sex))+
+  geom_bar(stat="identity")+
+  geom_line()+
+  scale_x_continuous(breaks=1:12)+
+  theme_bw()
+```
+
+- 売上変化の源泉は女性にあった
+- 性別がNA, 不明のものは除いてある
+- 実線は積み上げない売上を示している
+
+## 曜日ごとの合計売上
+
+- 2 年間の合計
+- 男女積み上げ棒グラフにした
+
+```{r wday_sex}
+receipt %>% 
+  select(dt, customer_id, in_tax) %>% 
+  left_join(customer, by="customer_id") %>% 
+  select(dt, sex, in_tax) %>% 
+  group_by(wday = wday(dt), sex) %>% 
+  summarise(sales = sum(in_tax)) %>% 
+  filter(sex == "女性" | sex == "男性") %>% 
+  
+  ggplot(aes(x=wday, y=sales, fill=sex))+
+  geom_bar(stat="identity", colour="black")+
+  scale_x_continuous(breaks=1:12)+
+  theme_bw()
+```
+
+よく分からない
+
+
+## 
+
+割合ver
+
+```{r wday_sex_ratio}
+receipt %>% 
+  select(dt, customer_id, in_tax) %>% 
+  left_join(customer, by="customer_id") %>% 
+  select(dt, sex, in_tax) %>% 
+  group_by(wday = wday(dt), sex) %>% 
+  summarise(sales = sum(in_tax)) %>% 
+  filter(sex == "女性" | sex == "男性") %>% 
+  ungroup() %>% 
+  group_by(wday) %>% 
+  mutate(percent_sales = sales/sum(sales)) %>% 
+  
+  ggplot(aes(x=wday, y=percent_sales, fill=sex))+
+  geom_bar(stat="identity", colour="black")+
+  scale_x_continuous(breaks=1:7)+
+  theme_bw()
+```
+
+- 男は黙って土日に髪を切る
+
+## 曜日ごとの平均売上
+
+- エラーバーを付けました
+- 1 日の平均売上と 1sd
+
+```{r wday_errorbar}
+receipt %>% 
+  select(dt, in_tax) %>% 
+  group_by(dt) %>% 
+  summarise(sales = sum(in_tax)) %>% 
+  group_by(wday=wday(dt)) %>% 
+  summarise(mean_sales = mean(sales),
+            sd_sales = sd(sales)) %>% 
+  
+  ggplot(aes(x=wday))+
+  geom_bar(aes(y=mean_sales), stat="identity", alpha=0.8)+
+  geom_errorbar(aes(ymin = mean_sales - sd_sales,
+                    ymax = mean_sales + sd_sales),
+                width=0.25)+
+  scale_x_continuous(breaks=1:7)+
+  theme_bw()
+```
+
+
+## 会計数 vs 客単価
+
+- バルーンプロットにしてみました
+- 意外とつまらない図
+```{r staff_count}
+# 各店舗のスタッフの数
+staff_count <- staff %>% 
+  group_by(store_id) %>% 
+  summarise(count_staff = n())
+```
+
+
+```{r point_balloon}
+storely <- receipt %>% 
+  select(store_id, dt, in_tax) %>% 
+  group_by(store_id) %>% 
+  summarise(in_tax = sum(in_tax),
+            count = n(),
+            perCustomer = in_tax/count) %>% 
+  arrange(desc(in_tax)) %>% 
+  left_join(store,by="store_id") %>% 
+  left_join(staff_count, by="store_id") %>% 
+  select(store_name, in_tax, count, perCustomer, count_staff) 
+  
+ggplot(storely)+
+  geom_point(aes(x=count, y=perCustomer, size=count_staff),
+             shape=21,
+             colour="black",
+             fill="cornsilk")+
+  scale_size_area(max_size=10)+
+  geom_text(aes(x=count, y=perCustomer, label=store_name), size=4, 
+            vjust="inward", hjust="inward")+
+  theme_bw()
+  
+```
+
+- 銀座店強い
+- 吉祥寺店が特異的
+- 軸のスケールと範囲に注意
+
+## 辞めてそうなスタッフ
+
+- 一回も担当してない月のあるスタッフを抽出
+- 一番多い会計数を1にした（スタッフごとに）
+- 真っ青なところが会計回数 0 回
+
+```{r staff_heatmap}
+receipt %>% 
+  select(dt,
+         regi_staff) %>% 
+  group_by(date=substring(dt,1,7),
+           regi_staff) %>% 
+  summarise(n = n()) %>% 
+  spread(regi_staff,
+         n) %>% 
+  mutate_all(funs(ifelse(is.na(.),0,.))) %>%
+  gather(key=regi_staff, 
+         value=n,
+         -date) %>% 
+  group_by(regi_staff) %>% 
+  filter(min(n)==0) %>% 
+  mutate(rate = n/max(n)) %>% 
+  ggplot(aes(x=regi_staff,
+             y=date,
+             fill=rate))+
+  geom_tile()+
+  theme(axis.text.x = element_text(angle = 90,vjust=0.25))
+```
+
+- ヘルプ的に来てる奴が結構いるみたいです
+
+# 非リピーター
+
+## 定義
+
+- 期間 (2015/7/1 ~ 2017/6/30) に一度しか来店してない
+- 累積来店回数が一回
+
+リピーターか非リピーターを示す論理変数を用意した
+
+
+
+```{r customer_repeater}
+customer_repeat <- receipt %>% 
+  group_by(customer_id) %>% 
+  summarise(count = n(),
+            cumComing=max(cs_point)) %>%  #cs_pointは累積来店回数
+  filter(count == 1,
+         cumComing == 1) %>%
+  mutate(repeater = FALSE) %>% 
+  select(customer_id, repeater) %>% 
+  right_join(customer, by="customer_id") %>% 
+  mutate(repeater= ifelse(is.na(repeater)==TRUE,TRUE,FALSE))
+
+```
+
+```{r}
+customer_repeat %>% 
+  group_by(repeater, sex) %>% 
+  summarise(n.customer = n()) %>%
+  filter(sex != "不明") %>%
+  ungroup() %>% 
+  group_by(repeater) %>% 
+  mutate(rate = n.customer/sum(n.customer)) %>% kable()
+
+```
+
+- 離反率に男女差はなさそう
+- 限られた期間のデータなので厳密な離反率ではない
+
+## 何をみたいか
+
+理想：リピーターと非リピーターの違いがハッキリする  
+
+- 性別o
+- 住所
+- 年齢o
+- 通常利用店舗
+- 初回来店店舗o
+- クーポン
+- 単価o
+- カットのランク
+- カット以外の商品の購買
+
+oの付いてない項目につきましては未調査です。
+
+## 売上と単価
+
+```{r}
+customer_repeat %>% 
+  select(customer_id, repeater) %>% 
+  left_join(receipt, by="customer_id") %>% 
+  group_by(repeater) %>% 
+  summarise(sales = sum(in_tax, na.rm=TRUE),
+            count = n(),
+            sales/count) %>% 
+  kable()
+```
+
+- 非リピーターの単価は安い
+- 初回クーポンなどの影響？
+- 物販を買わない影響？
+
+## 月ごとの総売上 （repeater or not ）
+
+```{r}
+receipt %>% 
+  select(dt, customer_id, in_tax) %>% 
+  left_join(customer_repeat, by="customer_id") %>% 
+  select(repeater, dt, customer_id, in_tax, sex) %>% 
+  group_by(repeater,month = month(dt), sex) %>% 
+  summarise(sales = sum(in_tax)) %>%
+  filter(sex =="女性" | sex =="男性") %>% 
+  
+  ggplot(aes(x=month, y=sales, fill=sex))+
+  geom_bar(stat="identity")+
+  geom_line()+
+  scale_x_continuous(breaks=1:12)+
+  facet_wrap(~repeater)+
+  theme_bw()
+```
+
+
+## 
+
+縦軸スケール合わせない ver
+
+```{r}
+receipt %>% 
+  select(dt, customer_id, in_tax) %>% 
+  left_join(customer_repeat, by="customer_id") %>% 
+  select(repeater, dt, customer_id, in_tax, sex) %>% 
+  group_by(repeater,month = month(dt), sex) %>% 
+  summarise(sales = sum(in_tax)) %>%
+  filter(sex =="女性" | sex =="男性") %>% 
+  
+  ggplot(aes(x=month, y=sales, fill=sex))+
+  geom_bar(stat="identity")+
+  geom_line()+
+  scale_x_continuous(breaks=1:12)+
+  facet_wrap(~repeater, scale="free_y")+
+  theme_bw()
+```
+
+- 面白いかもしれない
+- 非リピーター：春から夏にかけて
+
+## 
+
+積み上げた
+
+```{r}
+receipt %>% 
+  select(dt, customer_id, in_tax) %>% 
+  left_join(customer_repeat, by="customer_id") %>% 
+  select(repeater, dt, customer_id, in_tax) %>% 
+  group_by(repeater,
+           month = month(dt)) %>% 
+  summarise(sales = sum(in_tax)) %>% 
+  
+  ggplot(aes(x=factor(month), y=sales, fill=repeater))+
+  geom_bar(stat="identity",
+           colour="black") +
+  theme_bw()
+```
+
+##
+
+店舗ごとに分けた
+
+```{r}
+receipt %>% 
+  select(dt, customer_id, in_tax, store_id) %>% 
+  left_join(customer_repeat, by="customer_id") %>% 
+  select(repeater, dt, customer_id, in_tax, store_id) %>% 
+  group_by(repeater,
+           month = month(dt),
+           store_id) %>% 
+  summarise(sales = sum(in_tax)) %>%
+  left_join(store, by="store_id") %>% 
+  ggplot(aes(x=month, y=sales, fill=repeater))+
+  geom_bar(stat="identity") +
+  facet_wrap(~store_name, scales="free")+
+  scale_x_continuous(breaks=1:12)+
+  theme_bw()
+  
+```
+
+- 青山店は一見さんお断りみたいになってる
+- 縦軸のスケール合わせてない。注意
+
+##
+
+店舗ごとに分けた
+
+```{r}
+receipt %>% 
+  select(dt, customer_id, in_tax, store_id) %>% 
+  left_join(customer_repeat, by="customer_id") %>% 
+  filter(is.na(repeater) == FALSE) %>% 
+  select(repeater, dt, customer_id, in_tax, store_id) %>% 
+  group_by(repeater,
+           month = month(dt),
+           store_id) %>% 
+  summarise(sales = sum(in_tax)) %>%
+  left_join(store, by="store_id") %>% 
+  ggplot(aes(x=month, y=sales, fill=repeater))+
+  geom_bar(stat="identity") +
+  facet_grid(repeater~store_name, scales="free_y")+
+  scale_x_continuous(breaks=1:12)+
+  theme_bw()
+  
+```
+
+- 縦軸スケール合わせてない
+- 見づらくて申し訳ありません
+
+## 年代ごとの離反
+
+
+```{r repeater_birthage}
+customer_repeat %>% 
+  group_by(repeater,
+           birth_age) %>%
+  filter(birth_age != 0) %>% 
+  summarise(count=n()) %>% 
+  ggplot(aes(x=birth_age, y=count, fill=repeater)) + 
+  geom_bar(stat="identity",
+           colour="black")+
+  scale_x_continuous(breaks = seq(1920,2010,10))+
+  theme_bw()
+```
+
+##
+
+割合ver
+
+```{r repeater_birthage_ratio}
+customer_repeat %>% 
+  group_by(repeater,
+           birth_age) %>%
+  filter(birth_age != 0) %>% 
+  summarise(count=n()) %>% 
+  ungroup() %>% 
+  group_by(birth_age) %>% 
+  mutate(rate = count/sum(count)) %>% 
+  ggplot(aes(x=birth_age, y=rate, fill=repeater)) + 
+  geom_bar(stat="identity",
+           colour="black")+
+  scale_x_continuous(breaks = seq(1920,2010,10))+
+  theme_bw()
+```
+
+- 20 代の非リピート率高い
+
+
+
+## 初回来店店舗ごと
+
+単純な人数（会計数は見てない）
+
+```{r repeaters_per_store}
+customer_repeat %>% 
+  group_by(repeater, first_store) %>% 
+  summarise(count=n()) %>% 
+  filter(first_store != 0) %>% 
+  left_join(store, by=c("first_store"="store_id")) %>% 
+  ggplot()+
+  geom_bar(aes(x=factor(store_name), y=count, fill=repeater),
+           stat="identity",
+           colour="black")+
+  theme_bw()
+```
+
+- あくまでも初回来店でしかみてない。注意
+- 初回来店の多い店舗は昼間人口の多いところ
+
+## その割合
+
+人数の割合
+
+```{r repeaters_ratio_per_store}
+customer_repeat %>% 
+  group_by(repeater, first_store) %>% 
+  summarise(count=n()) %>% 
+  filter(first_store != 0) %>% 
+  ungroup() %>% 
+  group_by(first_store) %>% 
+  mutate(rate = count/sum(count)) %>% 
+  left_join(store, by=c("first_store"="store_id")) %>% 
+  ggplot()+
+  geom_bar(aes(x=factor(store_name), y=rate, fill=repeater),
+           stat="identity",
+           colour="black")+
+  theme_bw()
+```
+
+- あくまでも初回来店でしかみてない。注意
+
+## これからの調査
+
+商品やカットのレベルに踏み込んでいきたい
+
+
+
+# エース級スタイリスト
+
+## 各スタッフの売上
+
+複数人での担当は除いてある
+
+```{r staffly}
+staffly <- receipt %>% 
+  select(dt, 
+         regi_staff, 
+         in_tax) %>% 
+  left_join(staff, 
+            by=c("regi_staff"="staff_id")) %>% 
+  group_by(regi_staff) %>% 
+  summarise(sales = sum(in_tax),
+            count = n(),
+            store_id=mfv(store_id)) %>% 
+  left_join(store, 
+            by="store_id") %>% 
+  select(-lat, -long, -f)
+```
+
+```{r all_staff_sales}
+staffly %>% 
+  arrange(desc(sales)) %>% 
+  filter(regi_staff != 0) %>% 
+  
+  ggplot()+
+  geom_bar(aes(x=reorder(factor(regi_staff),sales, mean),
+               y=sales),
+           stat="identity",
+           alpha=0.5)+
+  labs(x="staff id")+
+  theme_bw()
+```
+
+- 一部のスタイリストに売り上げが集中している  
+- ~~さながらホスト~~
+
+## エース級
+
+所属店舗には会計の最頻値 `modeest::mfv()` を用いた
+ 
+```{r top_staffs_sales}
+staffly %>% 
+  arrange(desc(sales)) %>% 
+  filter(count > mean(count, na.rm=TRUE)*2.5, regi_staff != 0) %>% 
+  
+  ggplot()+
+  geom_bar(aes(x=reorder(factor(regi_staff),sales, mean),
+               y=sales),
+           stat="identity",
+           alpha=0.5)+
+  geom_text(aes(x=reorder(factor(regi_staff),sales, mean),
+                y=sales,
+                label=store_name),
+            vjust="inward",
+            hjust="iniward")+
+  labs(x="staff id")+
+  theme_bw()
+```
+
+- どう掘り下げていいのか分からない
+- 銀座店強そう
+
+## 店舗別エース
+
+- スケールを合わせてない  
+- あくまでも店舗内でのエースを見たい
+
+```{r storely_staff_sales}
+staffly %>% 
+  filter(regi_staff != 0) %>% 
+  arrange(desc(sales)) %>% 
+  ggplot()+
+  geom_bar(aes(x=reorder(factor(regi_staff),sales, mean),
+               y=sales),
+           stat="identity",
+           alpha=0.5)+
+  facet_wrap(~store_name, scales="free")+
+  
+  labs(x="staff id")+
+  theme_bw()
+```
+
+- 上大岡の id:132 
+
+
