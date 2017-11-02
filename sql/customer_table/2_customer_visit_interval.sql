@@ -1,8 +1,5 @@
 ﻿-- 顧客の来店間隔を記録
 
--- ここ必ず消すこと!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-ALTER TABLE customer_2 ADD COLUMN visit_interval INT;
-
 UPDATE customer_2 AS E
 SET visit_interval = (
 SELECT 
