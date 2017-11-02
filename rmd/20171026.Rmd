@@ -39,7 +39,6 @@ library(dplyr)
 library(reshape2)
 library(GGally)
 library(pROC)
-
 con <- dbConnect(PostgreSQL(), host="192.168.11.16", 
                  port=5432, 
                  dbname="datacom2017", 
@@ -124,14 +123,14 @@ dataset4 <- dbGetQuery(con,"
 
 
 
-onaosi_id <- dataset4 %>% filter(category_1=="クーポン                          ") %>% select(product_id)
+coupon_id <- dataset4 %>% filter(category_1=="クーポン                          ") %>% select(product_id)
 
-onaosi_line <- onaosi_id %>% left_join(dataset3,"product_id")
+coupon_line <- onaosi_id %>% left_join(dataset3,"product_id")
 
-onaosi_data <- dataset2 %>% left_join(onaosi_line,"receipt_id") %>%
+coupon_data <- dataset2 %>% left_join(coupon_line,"receipt_id") %>%
   mutate(coupon_ = !is.na(product_id)) %>% select(customer_id,coupon_) 
 
-dataset2 <- dataset2 %>% left_join(onaosi_data,"customer_id")
+dataset2 <- dataset2 %>% left_join(coupon_data,"customer_id")
 
 ```
 
@@ -150,18 +149,13 @@ ggplot(new_customer_firstdata,aes(x=birth_age,fill=repeater %>% as.character()))
 
 
 
-```{r}
-new_customer_firstdata$sum_coupon_num
-```
-
-
 ## 初回データ確認
 使うデータだけにしつつ相関関係の確認
 
 こういう時は男女とかのデータが数字じゃないと困るね
 めんどいからとりあえず抜くだけ
 ```{r,fig.width=50,fig.height=80}
-new_customer_firstdata_naout <- na.omit(new_customer_firstdata %>% select(repeater,t,day,dm,sex,store_id,in_tax,regi_staff,simei,item_num,sum_coupon_num))
+new_customer_firstdata_naout <- na.omit(new_customer_firstdata %>% select(repeater,t,day,dm,sex,store_id,in_tax,regi_staff,simei,item_num,coupon_))
 str(new_customer_firstdata_naout)
 cor(new_customer_firstdata_naout[,c(-2,-4,-5,-8,-9)])
 ggpairs(data=cbind(new_customer_firstdata_naout[,c(-1,-2,-8)],
@@ -206,7 +200,7 @@ logistic_data <- new_customer_firstdata_naout %>%
                                               4,5)))) )
 
 output.glm <- glm(repeater~ day + dm + sex +
-                    store_id + in_tax_ + regi_staff + sum_coupon_num + 
+                    store_id + in_tax_ + regi_staff + coupon_ + 
                     simei + hour_ ,
                   family=binomial,data = logistic_data)
 summary(output.glm)
@@ -231,6 +225,12 @@ lines(xaxis2, yaxis2) #生成データで曲線を描画する
 
 
 #new_customer_firstdata[is.na(new_customer_firstdata)]$repeater
+```
+
+```{r}
+outlies <- which(xaxis1 > 8|xaxis1 < -8)
+
+logistic_data[outlies,]
 ```
 
 
@@ -268,5 +268,11 @@ cutoff[2:5]
 #specificityは特異度（%表記なら100倍）
 #ppvは陽性的中率（positive predictive value)（%表記なら100倍）
 #npvは陰性的中率NPV（negative predictive value）（%表記なら100倍）
+```
+
+#　ニューラルネットワーク
+
+```{python}
+import tensorflow as tf
 ```
 
